@@ -15,4 +15,14 @@ gensim
 kaggle
 emoji
 ipykernel
+transformers==4.39.3
+sentencepiece
+torch
+langdetect
+tqdm
+mlflow
+pyarrow
+emoji
+kagglehub
+
 -e .
