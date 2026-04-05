@@ -5,4 +5,14 @@ python-dotenv
 ruff
 tqdm
 typer
+textacy
+pandas
+numpy
+scikit-learn
+seaborn
+nltk
+gensim
+kaggle
+emoji
+ipykernel
 -e .
