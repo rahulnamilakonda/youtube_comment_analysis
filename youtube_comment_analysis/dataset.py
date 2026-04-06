@@ -1,8 +1,10 @@
 import gc
+import multiprocessing
 from pathlib import Path
 import re
 
 from huggingface_hub import snapshot_download
+from joblib import Parallel, delayed
 import kagglehub
 from loguru import logger
 from dotenv import load_dotenv
@@ -90,18 +92,71 @@ def deemojize(text:str):
 
 
 
-def apply_cleaning_col(df: pd.DataFrame, text_col: str) -> pd.DataFrame:
+def apply_cleaning_col(df: pd.DataFrame, text_col: str, batch_size: int = 100000,
+                           cpu_fraction: float = 0.5) -> pd.DataFrame:
     logger.info("Applying text cleaning...")
     original_count = len(df)
+
+    # use only 50% of available cores
+    n_workers = max(1, int(multiprocessing.cpu_count() * cpu_fraction))
+    logger.info(f"Using {n_workers}/{multiprocessing.cpu_count()} cores")
+    logger.info(f"Detecting language for {len(df):,} rows in batches of {batch_size:,}...")
     
     # Stage 1: clean body
-    df['text_clean'] = df[text_col].apply(clean_text)
+    texts = df[text_col].tolist()
+    batches = [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
+    logger.info(f"Total batches: {len(batches)}")
+
+    def clean(batch: list, batch_idx: int) -> list:
+        return [
+            clean_text(text)
+            for text in tqdm(
+                batch,
+                desc=f"Batch {batch_idx + 1}/{len(batches)}",
+                position=batch_idx,   
+                leave=True          
+            )
+        ]
+
+    batch_results = Parallel(n_jobs=n_workers, backend="threading")(
+        delayed(clean)(batch, idx)
+        for idx, batch in enumerate(batches)
+    )
+
+    # flatten results
+    results = [lang for batch in batch_results for lang in batch]  # type: ignore
+
+
+    df['text_clean'] = results
     
     # Drop rows that became None after cleaning
     df = df.dropna(subset=['text_clean']).reset_index(drop=True)
     
     # Stage 2: Convert emoji's to text
-    df['text_clean'] = df['text_clean'].apply(deemojize)
+    logger.info("Applying deemojizing...")
+    def conv_emoji(batch: list, batch_idx: int) -> list:
+        return [
+            deemojize(text)
+            for text in tqdm(
+                batch,
+                desc=f"Batch {batch_idx + 1}/{len(batches)}",
+                position=batch_idx,   
+                leave=True          
+            )
+        ]
+
+    texts = df['text_clean'].tolist()
+    batches = [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
+    logger.info(f"Total batches: {len(batches)}")
+
+    batch_results = Parallel(n_jobs=n_workers, backend="threading")(
+        delayed(conv_emoji)(batch, idx)
+        for idx, batch in enumerate(batches)
+    )
+
+    # flatten results
+    results = [lang for batch in batch_results for lang in batch]  # type: ignore
+    df['text_clean'] = results
     
     dropped = original_count - len(df)
     logger.info(f"Dropped {dropped:,} rows after cleaning | "
@@ -128,25 +183,53 @@ def detect_language_single(text: str) -> str:
     except LangDetectException:
         return 'unknown'
 
-def detect_language_batch(df: pd.DataFrame, 
-                           text_col: str) -> pd.DataFrame:
+def detect_language_batch(df: pd.DataFrame,
+                           text_col: str,
+                           batch_size: int = 100000,
+                           cpu_fraction: float = 0.5) -> pd.DataFrame:
     
-    # Stage 3: Detect Language
-    logger.info(f"Detecting language for {len(df):,} rows...")
-    
-    tqdm.pandas(desc="Detecting languages")
-    df['language'] = df[text_col].progress_apply(detect_language_single)
+    # use only 50% of available cores
+    n_workers = max(1, int(multiprocessing.cpu_count() * cpu_fraction))
+    logger.info(f"Using {n_workers}/{multiprocessing.cpu_count()} cores")
+    logger.info(f"Detecting language for {len(df):,} rows in batches of {batch_size:,}...")
 
+    texts = df[text_col].tolist()
+
+    # split texts into batches of 100000
+    batches = [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
+    logger.info(f"Total batches: {len(batches)}")
+
+    def process_batch(batch: list, batch_idx: int) -> list:
+        # ✅ tqdm inside each batch to track row level progress
+        return [
+            detect_language_single(text)
+            for text in tqdm(
+                batch,
+                desc=f"Batch {batch_idx + 1}/{len(batches)}",
+                position=batch_idx,
+                leave=True
+            )
+        ]
+    # run batches in parallel
+    batch_results = Parallel(n_jobs=n_workers, backend="threading")(
+        delayed(process_batch)(batch, idx)
+        for idx, batch in enumerate(batches)
+    )
+
+    # flatten batch results back to single list
+    results = [lang for batch in batch_results for lang in batch]  # type: ignore
+
+    df['language'] = results
 
     # drop unknown language rows
-    df = df[~(df['language'] == 'unknown')]
+    before = len(df)
+    df = df[df['language'] != 'unknown'].reset_index(drop=True)
+    after = len(df)
 
-    logger.info("Unknown language rows are dropped")
-    
-    # Log final distribution
+    logger.info(f"Dropped {before - after:,} unknown language rows")
     logger.info(f"\nFull dataset language counts:\n"
                 f"{df['language'].value_counts().to_string()}")
-    
+
     return df
 
 def translate_group(texts: list, model_name: str, model_path: Path = MODELS_DIR) -> list:
@@ -226,9 +309,6 @@ def process_data(input_path: Path, output_path: Path):
 
     df = pd.read_csv(input_path)
 
-    pdf = df.sample(20)
-    df = pd.concat([pdf, df.loc[[803501, 394315, 991762, 886902, 983070]]], axis=0)
-
     logger.info("Dataset loaded")
 
 
@@ -253,9 +333,9 @@ def process_data(input_path: Path, output_path: Path):
     logger.success("Language detected for all the comments (body)")
 
     # translate ru to english
-    df = translate(df, 'text_clean', NMT_MODEL_NAME)
+    # df = translate(df, 'text_clean', NMT_MODEL_NAME)
 
-    logger.success("Translated from russian to english")
+    # logger.success("Translated from russian to english")
 
     # save processed dataset
     df.to_csv(output_path, index=False)
