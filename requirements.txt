@@ -25,4 +25,5 @@ pyarrow
 emoji
 kagglehub
 wordcloud
+imblearn
 -e .
