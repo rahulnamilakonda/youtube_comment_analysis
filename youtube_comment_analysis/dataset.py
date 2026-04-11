@@ -18,8 +18,11 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset
 from transformers.pipelines import pipeline
+from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
+import nltk
 
-from youtube_comment_analysis.config import MODELS_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR
+from youtube_comment_analysis.config import INTERIM_DATA_DIR, MODELS_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR
 
 DATASET_URL = 'vijayj0shi/reddit-dataset-with-sentiment-analysis'
 
@@ -92,6 +95,26 @@ def clean_text(text: str) -> str | None:
 
 def deemojize(text:str):
     return emoji.demojize(text)
+
+
+def stem_and_remove_stopwords(df: pd.DataFrame, text_col: str) -> str | None:
+    nltk.download('stopwords')
+
+    ps = PorterStemmer()
+    stop_words = set(stopwords.words('english'))
+
+    def apply(text: str) -> str | None:
+        if not isinstance(text, str):
+            return None
+        
+        tokens = text.split()
+        tokens = [ps.stem(w) for w in tokens if w not in stop_words]
+        
+        return " ".join(tokens) if tokens else None
+
+    df['text_processed'] = df[text_col].apply(apply)
+
+
 
 def apply_cleaning_col(df: pd.DataFrame, text_col: str, batch_size: int = 100000,
                            cpu_fraction: float = 0.5) -> pd.DataFrame:
@@ -192,7 +215,7 @@ def process_data(input_path: Path, output_path: Path, text_col: str):
 def main(
     # ---- DEFAULT DATA STORAGE PATHS ----
     input_path: Path = RAW_DATA_DIR / "dataset.csv",
-    output_path: Path = PROCESSED_DATA_DIR / "processed.csv",
+    output_path: Path = INTERIM_DATA_DIR / "processed.csv",
     # ----------------------------------------------
 ):
     # get_raw_data(download_path=input_path)
