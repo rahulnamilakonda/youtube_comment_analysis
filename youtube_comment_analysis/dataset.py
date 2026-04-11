@@ -218,7 +218,8 @@ def main(
     output_path: Path = INTERIM_DATA_DIR / "processed.csv",
     # ----------------------------------------------
 ):
-    # get_raw_data(download_path=input_path)
+    # download the data
+    get_raw_data(download_path=input_path)
 
     # preprocess data
     process_data(input_path=input_path, output_path=output_path, text_col='Body') 
