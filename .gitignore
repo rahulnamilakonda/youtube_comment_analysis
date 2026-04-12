@@ -196,4 +196,5 @@ models/Helsinki-NLP_opus-mt-ru-en
 # mlflow runs and .db
 mlruns/
 mlflow.db
+mlartifacts
 *.db
