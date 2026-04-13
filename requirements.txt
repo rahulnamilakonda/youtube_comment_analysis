@@ -26,4 +26,6 @@ emoji
 kagglehub
 wordcloud
 imblearn
+xgboost
+catboost
 -e .
