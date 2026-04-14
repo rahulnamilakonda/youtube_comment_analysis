@@ -1,9 +1,12 @@
               precision    recall  f1-score   support
 
-          -1       0.78      0.67      0.72      1029
-           0       0.80      0.93      0.86       488
-           1       0.51      0.57      0.54       532
+          -1       0.94      0.89      0.91      1029
+           0       0.79      0.91       0.85       455
+           1       0.90      0.87      0.88       510
 
-    accuracy                           0.71      2049
-   macro avg       0.70      0.72      0.71      2049
-weighted avg       0.71      0.71      0.71      2049
+    accuracy                           0.89      1994
+   macro avg       0.88      0.89      0.88      1994
+weighted avg       0.89      0.89      0.89      1994
+
+recall means - Too many misses
+precision means - Are my predictions reliable
