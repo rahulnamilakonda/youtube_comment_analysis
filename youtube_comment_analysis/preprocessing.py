@@ -40,34 +40,58 @@ def preprocess(raw_dir: Path, train_path: Path, test_path: Path):
     logger.info("Loading and merging datasets...")
     
     # 1. Primary Dataset (Reddit)
-    primary_dir = raw_dir / "primary"
-    primary_path = list(primary_dir.glob("*.csv"))[0]
+    primary_path = raw_dir / "primary" / "comments.csv"
+    logger.info("Primary path: " + str(primary_path))
     df_primary = pd.read_csv(primary_path)
+
     df_primary = df_primary.rename(columns=params['preprocessing']['rename_columns'])
     # Keep Negative (-1)
+    df_primary['Sentiment'] = df_primary['Sentiment'].map(lambda x: -1 if str(x).lower() == 'negative' else 1)
+    df_primary.rename(columns={'Sentiment': 'sentiment'}, inplace=True)
     df_neg = df_primary[df_primary['sentiment'] == -1].copy()
+
+
     df_neg = df_neg[['sentiment', 'Body', 'upvotes']]
     df_neg.columns = ['sentiment', 'text', 'upvotes']
+
+    logger.info("Primary Dataset (Reddit) Dataset head: ")
+    logger.info("Dataset columns: " + str(df_neg.columns))
+    logger.info(df_neg.head())
     
     # 2. Twitter-Reddit Combined Dataset
-    tr_dir = raw_dir / "twitter_reddit_combined"
-    tr_path = list(tr_dir.glob("*.csv"))[0]
+    tr_path = raw_dir / "twitter_reddit_combined" / "Reddit_Data.csv"
+
+    logger.info("Twitter-Reddit Combined Dataset path: " + str(tr_path))
     df_tr = pd.read_csv(tr_path)
+
     # Sample Neutral (category 0)
     df_neu = df_tr[df_tr['category'] == 0].sample(n=2500, random_state=42).copy()
     df_neu = df_neu.rename(columns={'category': 'sentiment', 'clean_comment': 'text'})
     df_neu['upvotes'] = 0
     df_neu = df_neu[['sentiment', 'text', 'upvotes']]
+
+    logger.info("Twitter-Reddit Combined Dataset head: ")
+    logger.info("Dataset columns: " + str(df_neu.columns))
+    logger.info(df_neu.head())
     
     # 3. Twitter Entity Sentiment
     ts_path = raw_dir / "twitter_sentiment" / "twitter_training.csv"
+
+    logger.info("Twitter-Reddit Combined Dataset path: " + str(ts_path))
     df_ts = pd.read_csv(ts_path, header=None, names=['id', 'entity', 'label', 'content'], on_bad_lines='skip')
+
     # Map Positive to 1
     df_pos = df_ts[df_ts['label'].str.lower() == 'positive'].sample(n=2800, random_state=42).copy()
+    df_pos.rename({'label': 'sentiment'}, inplace=True)
     df_pos['sentiment'] = 1
     df_pos = df_pos.rename(columns={'content': 'text'})
     df_pos['upvotes'] = 0
     df_pos = df_pos[['sentiment', 'text', 'upvotes']]
+
+    logger.info("Twitter Entity Sentiment head: ")
+    logger.info("Dataset columns: " + str(df_pos.columns))
+    logger.info(df_pos.head())
+
     
     # Merge
     df = pd.concat([df_neg, df_neu, df_pos], ignore_index=True)
@@ -95,6 +119,13 @@ def preprocess(raw_dir: Path, train_path: Path, test_path: Path):
     test_size = params['preprocessing']['train_test_split']
     random_state = params['base']['random_state']
     
+    logger.info("Final Dataset Columns: " + str(df.columns))
+    logger.info("Final Dataset Head")
+    logger.info(df.head())
+    logger.info("Dataset size: " + str(df.shape[0]))
+    logger.info("Dataset target distribution: " + str(df.sentiment.value_counts()))
+    
+
     train_df, test_df = train_test_split(
         df, test_size=test_size, random_state=random_state, stratify=df[target_col]
     )
