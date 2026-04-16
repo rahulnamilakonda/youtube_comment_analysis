@@ -1,30 +1,88 @@
+import os
 from pathlib import Path
-
+import pandas as pd
+import numpy as np
+import yaml
+import joblib
 from loguru import logger
-from tqdm import tqdm
-import typer
-
+import mlflow
+from mlflow import lightgbm
+from lightgbm import LGBMClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import hstack
 from youtube_comment_analysis.config import MODELS_DIR, PROCESSED_DATA_DIR
 
-app = typer.Typer()
+def load_params():
+    with open("params.yaml", "r") as f:
+        return yaml.safe_load(f)
 
-
-@app.command()
-def main(
-    # ---- REPLACE DEFAULT PATHS AS APPROPRIATE ----
-    features_path: Path = PROCESSED_DATA_DIR / "features.csv",
-    labels_path: Path = PROCESSED_DATA_DIR / "labels.csv",
-    model_path: Path = MODELS_DIR / "model.pkl",
-    # -----------------------------------------
-):
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    logger.info("Training some model...")
-    for i in tqdm(range(10), total=10):
-        if i == 5:
-            logger.info("Something happened for iteration 5.")
-    logger.success("Modeling training complete.")
-    # -----------------------------------------
-
+def train(features_path: Path, model_dir: Path):
+    params = load_params()
+    
+    # MLflow Setup (Dagshub placeholders)
+    # These can be set via environment variables
+    # os.environ['MLFLOW_TRACKING_URI'] = 'https://dagshub.com/user/repo.mlflow'
+    # os.environ['MLFLOW_TRACKING_USERNAME'] = 'your_username'
+    # os.environ['MLFLOW_TRACKING_PASSWORD'] = 'your_token'
+    
+    mlflow.set_experiment(params['base']['project'])
+    
+    with mlflow.start_run():
+        logger.info(f"Loading training features from {features_path}")
+        train_df = pd.read_csv(features_path)
+        
+        # 1. TF-IDF Vectorization
+        logger.info("Fitting TF-IDF...")
+        tfidf_params = params['features']['tfidf']
+        processed_col = params['columns']['text_processed']
+        target_col = params['columns']['target']
+        
+        tfidf = TfidfVectorizer(
+            max_features=tfidf_params['max_features'],
+            ngram_range=tuple(tfidf_params['ngram_range'])
+        )
+        X_tfidf = tfidf.fit_transform(train_df[processed_col])
+        
+        # 2. Combine with numeric features
+        numeric_cols = params['columns']['numeric_features']
+        X_numeric = train_df[numeric_cols].values
+        X_combined = hstack([X_tfidf, X_numeric])
+        
+        y = train_df[target_col]
+        
+        # 3. Train Model
+        logger.info("Training LightGBM model...")
+        model_params = params['train']['params']
+        clf = LGBMClassifier(**model_params)
+        clf.fit(X_combined, y)
+        
+        # 4. Logging
+        # Industrial Practice: Log both high-level metadata and specific model params
+        metadata = {
+            "test_size": params['preprocessing']['train_test_split'],
+            "stratify": True,
+            "representation": f"TFIDF_{params['features']['tfidf']['max_features']}",
+            "scaler": f"{params['features']['scaling'].capitalize()}Scaler",
+            "model_name": "LightGBM_Optimized",
+            "resampler": "none",
+            "leak_proof": True
+        }
+        mlflow.log_params(metadata)
+        mlflow.log_params(clf.get_params()) # Logs all LightGBM params (including defaults)
+        mlflow.log_params(tfidf_params)
+        
+        # 5. Save artifacts
+        model_dir.mkdir(parents=True, exist_ok=True)
+        joblib.dump(clf, model_dir / "model.pkl")
+        joblib.dump(tfidf, model_dir / "tfidf.pkl")
+        
+        # Log model to MLflow (using sklearn flavor for LGBMClassifier)
+        lightgbm.log_model(clf, "model")
+        
+        logger.success(f"Model and vectorizer saved to {model_dir}")
 
 if __name__ == "__main__":
-    app()
+    train(
+        features_path=PROCESSED_DATA_DIR / "train_features.csv",
+        model_dir=MODELS_DIR
+    )
