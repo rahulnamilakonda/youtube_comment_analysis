@@ -28,4 +28,5 @@ wordcloud
 imblearn
 xgboost
 catboost
+optuna
 -e .
