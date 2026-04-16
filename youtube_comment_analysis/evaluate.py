@@ -62,11 +62,11 @@ def evaluate(test_features_path: Path, model_dir: Path):
         mlflow.log_metrics(metrics)
         
         # Log Classification Report as Text
-        report_str: dict = classification_report(y_test, y_pred, output_dict=True) # type: ignore
+        report_str: str = classification_report(y_test, y_pred) # type: ignore
         with tempfile.TemporaryDirectory() as tmp_dir:
             report_path = os.path.join(tmp_dir, "classification_report.txt")
             with open(report_path, "w") as f:
-                f.write(str(report_str))
+                f.write(report_str)
             mlflow.log_artifact(report_path)
 
             # Confusion Matrix Plot
