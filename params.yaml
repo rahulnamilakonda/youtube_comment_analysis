@@ -1,0 +1,53 @@
+base:
+  project: youtube_comment_analysis
+  random_state: 42
+
+data_collection:
+  datasets:
+    primary: "vijayj0shi/reddit-dataset-with-sentiment-analysis"
+    twitter_sentiment: "jp797498e/twitter-entity-sentiment-analysis"
+    twitter_reddit_combined: "cosmos98/twitter-and-reddit-sentimental-analysis-dataset"
+
+columns:
+  text_raw: "Body"
+  text_processed: "text_processed"
+  target: "sentiment"
+  numeric_features:
+    - "char_count"
+    - "word_count"
+    - "avg_word_len"
+
+preprocessing:
+  train_test_split: 0.2
+  drop_columns:
+    - "Post_ID"
+    - "Post_Title"
+    - "Comment_ID"
+    - "Parent_ID"
+    - "Author"
+    - "Confidence"
+    - "Sentiment_Score"
+  rename_columns:
+    Score: upvotes
+
+features:
+  tfidf:
+    max_features: 2500
+    ngram_range: [1, 1]
+  scaling: robust
+
+train:
+  model_name: lightgbm
+  params:
+    n_estimators: 1240
+    learning_rate: 0.033232
+    num_leaves: 147
+    max_depth: 13
+    min_child_samples: 5
+    subsample: 0.93696
+    colsample_bytree: 0.6612
+    reg_alpha: 1.323e-08
+    reg_lambda: 3.861e-08
+    min_split_gain: 0.6329
+    random_state: 42
+    n_jobs: -1

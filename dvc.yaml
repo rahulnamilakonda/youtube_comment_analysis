@@ -1,0 +1,62 @@
+stages:
+  data_collection:
+    cmd: python youtube_comment_analysis/dataset.py
+    deps:
+      - youtube_comment_analysis/dataset.py
+      - params.yaml
+    outs:
+      - data/raw/primary
+      - data/raw/twitter_sentiment
+      - data/raw/twitter_reddit_combined
+
+  preprocessing:
+    cmd: python youtube_comment_analysis/preprocessing.py
+    deps:
+      - youtube_comment_analysis/preprocessing.py
+      - data/raw/primary
+      - data/raw/twitter_sentiment
+      - data/raw/twitter_reddit_combined
+    params:
+      - preprocessing
+      - base
+      - columns
+    outs:
+      - data/processed/train.csv
+      - data/processed/test.csv
+
+  features:
+    cmd: python youtube_comment_analysis/features.py
+    deps:
+      - youtube_comment_analysis/features.py
+      - data/processed/train.csv
+      - data/processed/test.csv
+    params:
+      - features
+    outs:
+      - data/processed/train_features.csv
+      - data/processed/test_features.csv
+      - models/scaler.pkl
+
+  train:
+    cmd: python youtube_comment_analysis/modeling/train.py
+    deps:
+      - youtube_comment_analysis/modeling/train.py
+      - data/processed/train_features.csv
+    params:
+      - train
+      - features.tfidf
+      - columns
+    outs:
+      - models/model.pkl
+      - models/tfidf.pkl
+
+  evaluate:
+    cmd: python youtube_comment_analysis/evaluate.py
+    deps:
+      - youtube_comment_analysis/evaluate.py
+      - data/processed/test_features.csv
+      - models/model.pkl
+      - models/tfidf.pkl
+    metrics:
+      - reports/figures/confusion_matrix.png:
+          cache: false

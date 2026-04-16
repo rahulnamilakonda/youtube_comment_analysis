@@ -29,4 +29,8 @@ imblearn
 xgboost
 catboost
 optuna
+lightgbm
+dagshub
+pyyaml
+dvc
 -e .
