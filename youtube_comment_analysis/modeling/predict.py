@@ -1,30 +1,56 @@
-from pathlib import Path
-
+import joblib
 from loguru import logger
-from tqdm import tqdm
-import typer
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from youtube_comment_analysis.config import MODELS_DIR
 
-from youtube_comment_analysis.config import MODELS_DIR, PROCESSED_DATA_DIR
+class SentimentPredictor:
+    """
+    Production-ready inference class.
+    Encapsulates the model, vectorizer, and scaler.
+    """
+    def __init__(self, model_dir: Path = MODELS_DIR):
+        try:
+            self.model = joblib.load(model_dir / "model.pkl") # load model
+            self.tfidf = joblib.load(model_dir / "tfidf.pkl") # load vectorizer
+            self.scaler = joblib.load(model_dir / "scaler.pkl") # load scalar
+            logger.info("Predictor initialized successfully.")
+        except FileNotFoundError as e:
+            logger.error(f"Required model artifacts not found in {model_dir}: {e}")
+            raise e
+        
+    def _extract_features(self, text: str):
+        # Extracting numeric features
+        # Numeric features: char_count, word_count, avg_word_len
+        char_count = len(text)
+        word_count = len(text.split())
+        avg_word_len = char_count / (word_count + 1e-6)
+        
+        # numeric features: char_count, word_count, avg_word_len
+        numeric_feats = np.array([[char_count, word_count, avg_word_len]])
+        scaled_numeric = self.scaler.transform(numeric_feats)
 
-app = typer.Typer()
 
+        # Extract textual features using vectorizer.
+        # Text features: TF-IDF
+        text_tfidf = self.tfidf.transform([text])
+        
+        from scipy.sparse import hstack
+        return hstack([text_tfidf, scaled_numeric])
 
-@app.command()
-def main(
-    # ---- REPLACE DEFAULT PATHS AS APPROPRIATE ----
-    features_path: Path = PROCESSED_DATA_DIR / "test_features.csv",
-    model_path: Path = MODELS_DIR / "model.pkl",
-    predictions_path: Path = PROCESSED_DATA_DIR / "test_predictions.csv",
-    # -----------------------------------------
-):
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    logger.info("Performing inference for model...")
-    for i in tqdm(range(10), total=10):
-        if i == 5:
-            logger.info("Something happened for iteration 5.")
-    logger.success("Inference complete.")
-    # -----------------------------------------
-
+    def predict(self, text: str):
+        """Predict sentiment for a single input."""
+        if not text:
+            return None
+        features = self._extract_features(text)
+        prediction = self.model.predict(features)
+        return prediction[0]
 
 if __name__ == "__main__":
-    app()
+    # Example usage for production inference
+    predictor = SentimentPredictor()
+    sample_text = "This is an amazing video, I loved the content!"
+    result = predictor.predict(sample_text)
+    print(f"Text: {sample_text}")
+    print(f"Predicted Sentiment: {result}")
