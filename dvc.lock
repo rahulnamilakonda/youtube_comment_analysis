@@ -1,0 +1,172 @@
+schema: '2.0'
+stages:
+  data_collection:
+    cmd: python youtube_comment_analysis/dataset.py
+    deps:
+    - path: params.yaml
+      hash: md5
+      md5: 817d2e0df8ec8ae27f47463035923938
+      size: 1134
+    - path: youtube_comment_analysis/dataset.py
+      hash: md5
+      md5: 9c07a6a992e00768e794d4e2bdd03a44
+      size: 2225
+    outs:
+    - path: data/raw/primary
+      hash: md5
+      md5: a8ee1df2022da02948c4e7e165f1aa50.dir
+      size: 11808863
+      nfiles: 8
+    - path: data/raw/twitter_reddit_combined
+      hash: md5
+      md5: e0fafa405e3c099ab697d1e291cf29a2.dir
+      size: 28310648
+      nfiles: 2
+    - path: data/raw/twitter_sentiment
+      hash: md5
+      md5: ca5978fb76e041f87b5d2cd4b8450b02.dir
+      size: 10489439
+      nfiles: 2
+  preprocessing:
+    cmd: python youtube_comment_analysis/preprocessing.py
+    deps:
+    - path: data/raw/primary
+      hash: md5
+      md5: a8ee1df2022da02948c4e7e165f1aa50.dir
+      size: 11808863
+      nfiles: 8
+    - path: data/raw/twitter_reddit_combined
+      hash: md5
+      md5: e0fafa405e3c099ab697d1e291cf29a2.dir
+      size: 28310648
+      nfiles: 2
+    - path: data/raw/twitter_sentiment
+      hash: md5
+      md5: ca5978fb76e041f87b5d2cd4b8450b02.dir
+      size: 10489439
+      nfiles: 2
+    - path: youtube_comment_analysis/preprocessing.py
+      hash: md5
+      md5: eb313876dbc6ef57f1f0307f006a67d7
+      size: 5416
+    params:
+      params.yaml:
+        base:
+          project: youtube_comment_analysis
+          random_state: 42
+        columns:
+          text_raw: Body
+          text_processed: text_processed
+          target: sentiment
+          numeric_features:
+          - char_count
+          - word_count
+          - avg_word_len
+        preprocessing:
+          train_test_split: 0.2
+          drop_columns:
+          - Post_ID
+          - Post_Title
+          - Comment_ID
+          - Parent_ID
+          - Author
+          - Confidence
+          - Sentiment_Score
+          rename_columns:
+            Score: upvotes
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: a1263425424267b14d828187a6f2d917
+      size: 622971
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 02e0d75aec58ae826db3482138e45a83
+      size: 2499592
+  features:
+    cmd: python youtube_comment_analysis/features.py
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: a1263425424267b14d828187a6f2d917
+      size: 622971
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 02e0d75aec58ae826db3482138e45a83
+      size: 2499592
+    - path: youtube_comment_analysis/features.py
+      hash: md5
+      md5: 756b0150b6b9168c936b94de2ed64cbb
+      size: 2173
+    params:
+      params.yaml:
+        features:
+          tfidf:
+            max_features: 2500
+            ngram_range:
+            - 1
+            - 1
+          scaling: robust
+    outs:
+    - path: data/processed/test_features.csv
+      hash: md5
+      md5: 1904d159a9aeb0628be2aa6e94d2cb5c
+      size: 732214
+    - path: data/processed/train_features.csv
+      hash: md5
+      md5: 19ea88bd9703039a003c8475058d6e2f
+      size: 2935990
+    - path: models/scaler.pkl
+      hash: md5
+      md5: 78b4ee522069e4f15c9424515792bddb
+      size: 847
+  train:
+    cmd: python youtube_comment_analysis/modeling/train.py
+    deps:
+    - path: data/processed/train_features.csv
+      hash: md5
+      md5: 19ea88bd9703039a003c8475058d6e2f
+      size: 2935990
+    - path: youtube_comment_analysis/modeling/train.py
+      hash: md5
+      md5: 52bfc7cb4876f4399387000e6139ce9b
+      size: 4647
+    params:
+      params.yaml:
+        columns:
+          text_raw: Body
+          text_processed: text_processed
+          target: sentiment
+          numeric_features:
+          - char_count
+          - word_count
+          - avg_word_len
+        features.tfidf:
+          max_features: 2500
+          ngram_range:
+          - 1
+          - 1
+        train:
+          model_name: lightgbm
+          params:
+            n_estimators: 1000
+            learning_rate: 0.03
+            num_leaves: 70
+            max_depth: 10
+            min_child_samples: 25
+            subsample: 0.8
+            colsample_bytree: 0.5
+            reg_alpha: 0.5
+            reg_lambda: 0.5
+            min_split_gain: 0.7
+            random_state: 42
+            n_jobs: -1
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 8b1021361b9c2188e964de31cd756f45
+      size: 3577340
+    - path: models/tfidf.pkl
+      hash: md5
+      md5: 8e878a86351e7e7d41b07c8c15f560ca
+      size: 90571

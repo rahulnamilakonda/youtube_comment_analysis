@@ -6,9 +6,10 @@ import yaml
 import joblib
 from loguru import logger
 import mlflow
-from mlflow import lightgbm
+from mlflow import sklearn
 from lightgbm import LGBMClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score, f1_score, classification_report
 from scipy.sparse import hstack
 from youtube_comment_analysis.config import MODELS_DIR, PROCESSED_DATA_DIR
 
@@ -55,8 +56,31 @@ def train(features_path: Path, model_dir: Path):
         model_params = params['train']['params']
         clf = LGBMClassifier(**model_params)
         clf.fit(X_combined, y)
+
+        # 4. Detailed Metrics Logging (Train & Test)
+        def get_metrics(y_true, y_pred, prefix):
+            report: dict = classification_report(y_true, y_pred, output_dict=True) # type: ignore
+            metrics = {
+                f"{prefix}_accuracy": accuracy_score(y_true, y_pred),
+                f"{prefix}_f1_weighted": report['weighted avg']['f1-score'],
+                f"{prefix}_f1_macro": report['macro avg']['f1-score'],
+                f"{prefix}_precision_macro": report['macro avg']['precision'],
+                f"{prefix}_recall_macro": report['macro avg']['recall']
+            }
+            for label in report:
+                if label not in ['accuracy', 'macro avg', 'weighted avg']:
+                    metrics[f"{prefix}_f1_class_{label}"] = report[label]['f1-score']
+                    metrics[f"{prefix}_precision_class_{label}"] = report[label]['precision']
+                    metrics[f"{prefix}_recall_class_{label}"] = report[label]['recall']
+            return metrics
+
+        # Log Train Metrics
+        logger.info("Logging training metrics...")
+        y_train_pred = clf.predict(X_combined)
+        train_metrics = get_metrics(y, y_train_pred, "train")
+        mlflow.log_metrics(train_metrics)
         
-        # 4. Logging
+        # 5. Logging Parameters
         # Industrial Practice: Log both high-level metadata and specific model params
         metadata = {
             "test_size": params['preprocessing']['train_test_split'],
@@ -77,7 +101,7 @@ def train(features_path: Path, model_dir: Path):
         joblib.dump(tfidf, model_dir / "tfidf.pkl")
         
         # Log model to MLflow (using sklearn flavor for LGBMClassifier)
-        lightgbm.log_model(clf, "model")
+        sklearn.log_model(clf, "model")
         
         logger.success(f"Model and vectorizer saved to {model_dir}")
 
