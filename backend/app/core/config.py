@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # YouTube Data API
-    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_DATA_API", "")
     
     # Model Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent

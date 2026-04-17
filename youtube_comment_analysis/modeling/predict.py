@@ -90,7 +90,6 @@ class SentimentPredictor:
         
         # Find index of the predicted class to get its specific confidence
         pred_idx = np.where(classes == prediction)[0][0]
-        logger.info("prediction " + str(pred_idx))
         confidence = float(probs[pred_idx])
 
         return {
