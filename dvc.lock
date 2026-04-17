@@ -129,8 +129,8 @@ stages:
       size: 2935990
     - path: youtube_comment_analysis/modeling/train.py
       hash: md5
-      md5: 74d22d524af4c44abe0f080d6d0dc0f4
-      size: 5621
+      md5: 63cec5699c1b0e46ebfb5efbd37d9193
+      size: 5617
     params:
       params.yaml:
         columns:
@@ -187,8 +187,8 @@ stages:
       size: 90571
     - path: youtube_comment_analysis/evaluate.py
       hash: md5
-      md5: 95f55b2134ddaf5685528e60f6138630
-      size: 4984
+      md5: 84ab94cea5ff4dbe32a9ede973900e41
+      size: 4981
     outs:
     - path: reports/figures/confusion_matrix.png
       hash: md5
@@ -234,3 +234,22 @@ stages:
     params:
       params.yaml:
         base.project: youtube_comment_analysis
+  validate_api:
+    cmd: pytest tests/test_api.py -v
+    deps:
+    - path: backend/app/api/endpoints/sentiment.py
+      hash: md5
+      md5: eb689bcb1ecb605e0cb30dd1c615900c
+      size: 919
+    - path: backend/app/api/endpoints/youtube.py
+      hash: md5
+      md5: 99fecdce5189397cbcafa1cb88da63e1
+      size: 3557
+    - path: backend/app/main.py
+      hash: md5
+      md5: d8abbc8e6050cf2de0da081c551f346d
+      size: 968
+    - path: tests/test_api.py
+      hash: md5
+      md5: 247c8108d720da0b4c6d9896ec830d65
+      size: 3833

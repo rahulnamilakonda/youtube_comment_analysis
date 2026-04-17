@@ -81,3 +81,11 @@ stages:
       - models/model.pkl
     params:
       - base.project
+
+  validate_api:
+    cmd: pytest tests/test_api.py -v
+    deps:
+      - tests/test_api.py
+      - backend/app/main.py
+      - backend/app/api/endpoints/sentiment.py
+      - backend/app/api/endpoints/youtube.py
