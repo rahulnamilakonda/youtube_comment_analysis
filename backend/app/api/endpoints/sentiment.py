@@ -1,26 +1,22 @@
 from fastapi import APIRouter, HTTPException
-from backend.app.schemas.sentiment import CommentItem, SentimentResult
+from backend.app.schemas.sentiment import BatchSentimentRequest, BatchSentimentResponse
 from backend.app.services.sentiment_service import sentiment_service
 from loguru import logger
 
 router = APIRouter()
 
-@router.post("/predict_batch", response_model=SentimentResult)
-async def predict_batch(request: CommentItem):
+@router.post("/predict_batch", response_model=BatchSentimentResponse)
+async def predict_batch(request: BatchSentimentRequest):
     """
-    Predict sentiment for a single comment. 
-    Note: The frontend calls this 'predict_batch' but sends comments individually.
+    Predict sentiment for a batch of comments.
+    Order is preserved as per input array in the response.
     """
     try:
-        prediction = sentiment_service.analyze_text(request.comment_text)
-        if not prediction:
-            raise HTTPException(status_code=404, detail="Sentiment could not be determined")
+        results = sentiment_service.analyze_batch(request.comments)
+        if not results:
+            logger.warning("Batch processing returned no results.")
             
-        return {
-            "comment_id": request.comment_id,
-            "sentiment": prediction["sentiment"],
-            "confidence": prediction["confidence"]
-        }
+        return {"results": results}
     except Exception as e:
-        logger.error(f"Prediction error for comment {request.comment_id}: {e}")
-        raise HTTPException(status_code=500, detail="Error processing sentiment prediction")
+        logger.error(f"Batch prediction error: {e}")
+        raise HTTPException(status_code=500, detail="Error processing batch sentiment prediction")
