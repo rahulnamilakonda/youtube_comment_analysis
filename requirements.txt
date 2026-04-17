@@ -40,4 +40,5 @@ uvicorn
 google-api-python-client
 pydantic-settings
 pipreqs
+gunicorn
 -e .
