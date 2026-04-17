@@ -1,6 +1,7 @@
-from youtube_comment_analysis.modeling.predict import SentimentPredictor
 from backend.app.core.config import settings
 from loguru import logger
+
+from backend.app.services.sentiment_predictor import SentimentPredictor
 
 class SentimentService:
     def __init__(self):
