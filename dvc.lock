@@ -129,8 +129,8 @@ stages:
       size: 2935990
     - path: youtube_comment_analysis/modeling/train.py
       hash: md5
-      md5: 52bfc7cb4876f4399387000e6139ce9b
-      size: 4647
+      md5: 63cec5699c1b0e46ebfb5efbd37d9193
+      size: 5617
     params:
       params.yaml:
         columns:
@@ -164,9 +164,73 @@ stages:
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 8b1021361b9c2188e964de31cd756f45
-      size: 3577340
+      md5: 130eb166215166c066ca1d6016b5a3ff
+      size: 3557276
     - path: models/tfidf.pkl
       hash: md5
-      md5: 8e878a86351e7e7d41b07c8c15f560ca
+      md5: 20e665e4364c241d7710119ece8cb4c1
       size: 90571
+  evaluate:
+    cmd: python youtube_comment_analysis/evaluate.py
+    deps:
+    - path: data/processed/test_features.csv
+      hash: md5
+      md5: 1904d159a9aeb0628be2aa6e94d2cb5c
+      size: 732214
+    - path: models/model.pkl
+      hash: md5
+      md5: 130eb166215166c066ca1d6016b5a3ff
+      size: 3557276
+    - path: models/tfidf.pkl
+      hash: md5
+      md5: 20e665e4364c241d7710119ece8cb4c1
+      size: 90571
+    - path: youtube_comment_analysis/evaluate.py
+      hash: md5
+      md5: 84ab94cea5ff4dbe32a9ede973900e41
+      size: 4981
+    outs:
+    - path: reports/figures/confusion_matrix.png
+      hash: md5
+      md5: cdfeaffe32b985df13b334491e755294
+      size: 20457
+    - path: reports/metrics.json
+      hash: md5
+      md5: ada6e2d6dd53bb56d31f5013052c2ec5
+      size: 581
+  validate_schema:
+    cmd: pytest tests/test_data.py -v
+    deps:
+    - path: models/model.pkl
+      hash: md5
+      md5: 130eb166215166c066ca1d6016b5a3ff
+      size: 3557276
+    - path: models/tfidf.pkl
+      hash: md5
+      md5: 20e665e4364c241d7710119ece8cb4c1
+      size: 90571
+    - path: tests/test_data.py
+      hash: md5
+      md5: 0952bf4bcb29e1c190cc4a715ed7da49
+      size: 2848
+    params:
+      params.yaml:
+        base.project: youtube_comment_analysis
+  validate_model:
+    cmd: pytest tests/test_model.py -v
+    deps:
+    - path: models/model.pkl
+      hash: md5
+      md5: 130eb166215166c066ca1d6016b5a3ff
+      size: 3557276
+    - path: reports/metrics.json
+      hash: md5
+      md5: ada6e2d6dd53bb56d31f5013052c2ec5
+      size: 581
+    - path: tests/test_model.py
+      hash: md5
+      md5: f965de933f7bcdd4ef78d95aa2b5efde
+      size: 3558
+    params:
+      params.yaml:
+        base.project: youtube_comment_analysis

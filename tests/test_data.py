@@ -54,13 +54,20 @@ def test_model_signature_verification(model_info, sample_size):
     
     X_tfidf = tfidf.transform(test_df[processed_col])
     X_numeric = test_df[numeric_cols].values
-    X_combined = hstack([X_tfidf, X_numeric]).toarray() 
+    X_combined = hstack([X_tfidf, X_numeric]).toarray()
+
+    # Industrial Practice: Use Pandas DataFrame with string column names.
+    # This must match the training signature exactly.
+    X_com_df = pd.DataFrame(X_combined)
+    X_com_df.columns = [str(i) for i in range(X_com_df.shape[1])]
+    
+    logger.info(f"Input shape for batch size {sample_size}: {X_com_df.shape}")
     
     # 4. Verify prediction
     try:
-        preds = loaded_model.predict(X_combined)
+        preds = loaded_model.predict(X_com_df)
         assert len(preds) == sample_size
         logger.success(f"Signature verified for batch size {sample_size}.")
     except Exception as e:
-        logger.error(f"Signature mismatch for batch size {sample_size}: {e}")
-        pytest.fail(f"Signature validation failed: {e}")
+        logger.error(f"Signature mismatch for batch size {sample_size}, Shape of the data is {X_com_df.shape}")
+        pytest.fail(f"Signature validation failed: {e}, Shape of the data is {X_com_df.shape}")

@@ -29,17 +29,23 @@ def test_model_performance_threshold(model_info):
     """
     Industrial Test: Performance Gatekeeping.
     Checks if the model accuracy > 85% and promotes to Production if passed.
+    Uses the local metrics.json generated during the evaluate stage.
     """
     client, model_name, version = model_info
     
-    # Fetch metrics from the run that produced this model version
-    run_id = version.run_id
-    run = client.get_run(run_id)
+    # Industrial Practice: Load metrics from local artifact for robustness
+    import json
+    metrics_path = "reports/metrics.json"
     
-    # We look for the 'accuracy' metric logged during evaluate stage
-    accuracy = run.data.metrics.get("accuracy")
-    
-    assert accuracy is not None, f"Accuracy metric not found for run {run_id}"
+    try:
+        with open(metrics_path, "r") as f:
+            metrics = json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Metrics file {metrics_path} not found.")
+        pytest.fail(f"Metrics file {metrics_path} not found.")
+
+    accuracy = metrics.get("accuracy")
+    assert accuracy is not None, f"Accuracy metric not found in {metrics_path}"
     
     THRESHOLD = 0.85
     if accuracy >= THRESHOLD:

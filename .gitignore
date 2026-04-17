@@ -202,5 +202,8 @@ mlflow.db
 mlartifacts
 *.db
 
+# models
+models/*.pkl
+
 # frontend
 frontend/

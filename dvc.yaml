@@ -58,15 +58,26 @@ stages:
       - models/model.pkl
       - models/tfidf.pkl
     metrics:
+      - reports/metrics.json:
+          cache: false
+    plots:
       - reports/figures/confusion_matrix.png:
           cache: false
 
-  test_and_promote:
-    cmd: pytest tests/ -v
+  validate_schema:
+    cmd: pytest tests/test_data.py -v
     deps:
       - tests/test_data.py
-      - tests/test_model.py
       - models/model.pkl
       - models/tfidf.pkl
+    params:
+      - base.project
+
+  validate_model:
+    cmd: pytest tests/test_model.py -v
+    deps:
+      - tests/test_model.py
+      - reports/metrics.json
+      - models/model.pkl
     params:
       - base.project

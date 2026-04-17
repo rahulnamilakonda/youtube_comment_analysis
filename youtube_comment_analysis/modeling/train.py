@@ -47,7 +47,12 @@ def train(features_path: Path, model_dir: Path):
         # 2. Combine with numeric features
         numeric_cols = params['columns']['numeric_features']
         X_numeric = train_df[numeric_cols].values
-        X_combined = hstack([X_tfidf, X_numeric])
+        X_combined = hstack([X_tfidf, X_numeric]).toarray()
+        
+        # Industrial Practice: Convert to DataFrame with string column names
+        # This ensures LightGBM tracks feature names and MLflow signature is clean.
+        X_combined_df = pd.DataFrame(X_combined)
+        X_combined_df.columns = [str(i) for i in range(X_combined_df.shape[1])]
         
         y = train_df[target_col]
         
@@ -55,7 +60,7 @@ def train(features_path: Path, model_dir: Path):
         logger.info("Training LightGBM model...")
         model_params = params['train']['params']
         clf = LGBMClassifier(**model_params)
-        clf.fit(X_combined, y)
+        clf.fit(X_combined_df, y)
 
         # 4. Detailed Metrics Logging (Train & Test)
         def get_metrics(y_true, y_pred, prefix):
@@ -70,13 +75,13 @@ def train(features_path: Path, model_dir: Path):
             for label in report:
                 if label not in ['accuracy', 'macro avg', 'weighted avg']:
                     metrics[f"{prefix}_f1_class_{label}"] = report[label]['f1-score']
-                    metrics[f"{prefix}_precision_class_{label}"] = report[label]['precision']
-                    metrics[f"{prefix}_recall_class_{label}"] = report[label]['recall']
+                    metrics[f"train_precision_class_{label}"] = report[label]['precision']
+                    metrics[f"train_recall_class_{label}"] = report[label]['recall']
             return metrics
 
         # Log Train Metrics
         logger.info("Logging training metrics...")
-        y_train_pred = clf.predict(X_combined)
+        y_train_pred = clf.predict(X_combined_df)
         train_metrics = get_metrics(y, y_train_pred, "train")
         mlflow.log_metrics(train_metrics)
         
@@ -103,16 +108,21 @@ def train(features_path: Path, model_dir: Path):
         # Log model to MLflow (using sklearn flavor for LGBMClassifier)
         # Industrial Practice: Adding Model Signature (Schema) for production safety
         from mlflow.models import infer_signature
-        signature = infer_signature(X_combined, y_train_pred)
         
-        sklearn.log_model(
+        # We ensure X_combined_df has string column names and is a DataFrame
+        # for clean signature inference.
+        signature = infer_signature(X_combined_df[:5], y_train_pred[:5]) # type: ignore
+        
+        # We use input_example to make the schema visible in the MLflow UI
+        sklearn.log_model(     
             sk_model=clf, 
             artifact_path="model",
             signature=signature,
+            input_example=X_combined_df[:5],
             registered_model_name=params['base']['project']
         )
         
-        logger.success(f"Model and vectorizer saved to {model_dir}")
+        logger.success(f"Model and vectorizer saved to path: {model_dir}")
 
 if __name__ == "__main__":
     train(

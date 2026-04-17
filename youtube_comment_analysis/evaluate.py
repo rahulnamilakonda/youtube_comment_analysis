@@ -62,6 +62,11 @@ def evaluate(test_features_path: Path, model_dir: Path):
     with mlflow.start_run(nested=True, run_name="Evaluation") as run:
         mlflow.log_metrics(metrics)
         
+        # ── Industrial Practice: Save metrics for DVC ────────────────────────
+        import json
+        with open("reports/metrics.json", "w") as f:
+            json.dump(metrics, f, indent=4)
+        
         # ── Industrial Practice: Registry Management ─────────────────────────
         # After evaluation, we transition the model to "Staging"
         try:
@@ -76,7 +81,6 @@ def evaluate(test_features_path: Path, model_dir: Path):
                 name=model_name,
                 version=latest_version,
                 stage="Staging",
-                archive_existing_versions=True,
             )
             logger.success(f"Model {model_name} version {latest_version} promoted to STAGING")
         except Exception as e:
