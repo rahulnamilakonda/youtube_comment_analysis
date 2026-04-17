@@ -201,3 +201,6 @@ mlruns/
 mlflow.db
 mlartifacts
 *.db
+
+# frontend
+frontend/

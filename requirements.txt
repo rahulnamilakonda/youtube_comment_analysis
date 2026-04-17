@@ -33,5 +33,7 @@ lightgbm
 dagshub
 pyyaml
 dvc
-dagshub 
+dagshub
+fastapi
+pytest
 -e .

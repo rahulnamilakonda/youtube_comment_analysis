@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.sparse import hstack
+from mlflow import tracking
 from youtube_comment_analysis.config import MODELS_DIR, PROCESSED_DATA_DIR, FIGURES_DIR
 
 def load_params():
@@ -58,9 +59,29 @@ def evaluate(test_features_path: Path, model_dir: Path):
         if isinstance(value, float):
             logger.info(f"{name}: {value:.4f}")
     
-    with mlflow.start_run(nested=True, run_name="Evaluation"):
+    with mlflow.start_run(nested=True, run_name="Evaluation") as run:
         mlflow.log_metrics(metrics)
         
+        # ── Industrial Practice: Registry Management ─────────────────────────
+        # After evaluation, we transition the model to "Staging"
+        try:
+            client = tracking.MlflowClient()
+            model_name = params['base']['project']
+            
+            # Find the latest version of this model
+            latest_version = client.get_latest_versions(model_name, stages=["None"])[0].version
+            
+            # Transition to Staging
+            client.transition_model_version_stage(
+                name=model_name,
+                version=latest_version,
+                stage="Staging",
+                archive_existing_versions=True,
+            )
+            logger.success(f"Model {model_name} version {latest_version} promoted to STAGING")
+        except Exception as e:
+            logger.warning(f"Could not promote model to Staging: {e}")
+
         # Log Classification Report as Text
         report_str: str = classification_report(y_test, y_pred) # type: ignore
         with tempfile.TemporaryDirectory() as tmp_dir:

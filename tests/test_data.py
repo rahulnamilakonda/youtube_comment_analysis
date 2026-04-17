@@ -1,11 +1,66 @@
-import unittest
+import pytest
+import mlflow
+import yaml
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from loguru import logger
+from mlflow import tracking, models
+from youtube_comment_analysis.config import MODELS_DIR, PROCESSED_DATA_DIR
 
+def load_params():
+    with open("params.yaml", "r") as f:
+        return yaml.safe_load(f)
 
-class TestCodeIsTested(unittest.TestCase):
+@pytest.fixture
+def model_info():
+    params = load_params()
+    model_name = params['base']['project']
+    client = tracking.MlflowClient()
+    
+    # Get the latest version in Staging
+    versions = client.get_latest_versions(model_name, stages=["Staging"])
+    if not versions:
+        logger.warning(f"No version of model '{model_name}' found in Staging.")
+        pytest.skip(f"No version of model '{model_name}' found in Staging.")
+    
+    return client, model_name, versions[0]
 
-    def test_code_is_tested(self):
-        self.assertTrue(False)
-
-
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.parametrize("sample_size", [1, 5, 10])
+def test_model_signature_verification(model_info, sample_size):
+    """
+    Industrial Test: Signature Validation with Real Data.
+    We use @pytest.mark.parametrize to ensure the model signature is 
+    robust across different batch sizes (1, 5, and 10 rows).
+    """
+    client, model_name, version = model_info
+    params = load_params()
+    
+    # 1. Load the model as a PyFunc
+    model_uri = f"models:/{model_name}/{version.version}"
+    logger.info(f"Loading model for signature verification: {model_uri}")
+    loaded_model = mlflow.pyfunc.load_model(model_uri) 
+    
+    # 2. Get a real sample of processed data based on sample_size
+    test_df = pd.read_csv(PROCESSED_DATA_DIR / "test_features.csv").iloc[:sample_size]
+    
+    # 3. Prepare the input
+    import joblib
+    from scipy.sparse import hstack
+    
+    tfidf = joblib.load(MODELS_DIR / "tfidf.pkl")
+    processed_col = params['columns']['text_processed']
+    numeric_cols = params['columns']['numeric_features']
+    
+    X_tfidf = tfidf.transform(test_df[processed_col])
+    X_numeric = test_df[numeric_cols].values
+    X_combined = hstack([X_tfidf, X_numeric]).toarray() 
+    
+    # 4. Verify prediction
+    try:
+        preds = loaded_model.predict(X_combined)
+        assert len(preds) == sample_size
+        logger.success(f"Signature verified for batch size {sample_size}.")
+    except Exception as e:
+        logger.error(f"Signature mismatch for batch size {sample_size}: {e}")
+        pytest.fail(f"Signature validation failed: {e}")

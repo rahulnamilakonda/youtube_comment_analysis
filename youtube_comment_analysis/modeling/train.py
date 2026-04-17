@@ -101,7 +101,16 @@ def train(features_path: Path, model_dir: Path):
         joblib.dump(tfidf, model_dir / "tfidf.pkl")
         
         # Log model to MLflow (using sklearn flavor for LGBMClassifier)
-        sklearn.log_model(clf, "model")
+        # Industrial Practice: Adding Model Signature (Schema) for production safety
+        from mlflow.models import infer_signature
+        signature = infer_signature(X_combined, y_train_pred)
+        
+        sklearn.log_model(
+            sk_model=clf, 
+            artifact_path="model",
+            signature=signature,
+            registered_model_name=params['base']['project']
+        )
         
         logger.success(f"Model and vectorizer saved to {model_dir}")
 
