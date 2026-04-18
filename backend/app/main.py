@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.endpoints import sentiment, youtube
 from backend.app.core.config import settings
 
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,

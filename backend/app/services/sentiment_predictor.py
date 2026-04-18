@@ -1,12 +1,9 @@
 import joblib
 from loguru import logger
-import pandas as pd
 import numpy as np
-import mlflow
 from pathlib import Path
 from dotenv import load_dotenv
 from mlflow import sklearn
-import os
 from youtube_comment_analysis.config import MODELS_DIR
 from mlflow import tracking
 
@@ -65,9 +62,9 @@ class SentimentPredictor:
         X_combined = np.hstack([text_tfidf.toarray(), scaled_numeric])
         
         # Convert to DataFrame with string column names to match model signature
-        X_df = pd.DataFrame(X_combined)
-        X_df.columns = [str(i) for i in range(X_df.shape[1])]
-        return X_df
+        # X_df = pd.DataFrame(X_combined)
+        # X_df.columns = [str(i) for i in range(X_df.shape[1])]
+        return X_combined
 
     def predict(self, text: str):
         """Predict sentiment, label, and probabilities for a single input."""

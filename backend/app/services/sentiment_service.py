@@ -45,6 +45,7 @@ class SentimentService:
         results = []
         for item in comments:
             prediction = self.analyze_text(item.comment_text)
+            
             if prediction:
                 results.append({
                     "comment_id": item.comment_id,

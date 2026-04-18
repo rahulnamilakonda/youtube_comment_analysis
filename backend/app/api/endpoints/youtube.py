@@ -4,7 +4,7 @@ from backend.app.services.youtube_service import youtube_service
 from backend.app.services.sentiment_service import sentiment_service
 from backend.app.services.visual_service import generate_wordcloud_base64
 from loguru import logger
-import numpy as np
+# import numpy as np
 
 router = APIRouter()
 
@@ -51,7 +51,8 @@ async def analyze_video(request: VideoAnalysisRequest):
             "positive_pct": round((pos_count / total) * 100, 1) if total > 0 else 0,
             "negative_pct": round((neg_count / total) * 100, 1) if total > 0 else 0,
             "neutral_pct": round((neu_count / total) * 100, 1) if total > 0 else 0,
-            "avg_confidence": round(float(np.mean(confidences)), 4) if confidences else 0
+             "avg_confidence": round(float(sum(confidences)/len(confidences)), 4) if confidences else 0
+            # "avg_confidence": round(float(np.mean(confidences)), 4) if confidences else 0
         }
 
         # 4. Calculate Engagement

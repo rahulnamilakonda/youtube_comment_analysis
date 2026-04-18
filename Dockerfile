@@ -29,7 +29,7 @@ COPY --from=builder /install /usr/local
 
 # Copy only the essentials as requested
 COPY backend/ ./backend/
-COPY models/ ./models/
+COPY models/*.pkl ./models/
 COPY youtube_comment_analysis/config.py ./youtube_comment_analysis/config.py
 COPY youtube_comment_analysis/__init__.py ./youtube_comment_analysis/__init__.py
 COPY params.yaml .
