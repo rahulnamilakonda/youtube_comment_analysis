@@ -1,5 +1,12 @@
-# Data
+# DVC Data and Artifacts
 /data/
+/models/
+/reports/metrics.json
+/reports/figures/
+/mlartifacts/
+mlflow.db
+.dvc/cache/
+.dvc/tmp/
 
 # Mac OS-specific storage files
 .DS_Store

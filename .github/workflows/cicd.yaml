@@ -73,15 +73,21 @@ jobs:
               run: dvc push
 
             - name: Commit and Push DVC Metadata
-              # Industrial Practice: [skip ci] prevents an infinite loop.
-              # When the bot commits dvc.lock, GitHub will NOT trigger a new pipeline run.
+              # Industrial Practice: Precisely target dvc.lock and ignore other changes.
+              # [skip ci] is CRITICAL: It prevents an infinite loop by telling GitHub 
+              # not to trigger a new workflow run for this bot-generated commit.
               if: success()
               run: |
                   git config --local user.email "action@github.com"
                   git config --local user.name "github-actions[bot]"
-                  git add dvc.lock
-                  # Only commit if there are changes to avoid failing the job
-                  git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update dvc.lock [skip ci]" && git push)
+                  # Check if dvc.lock specifically has changes to avoid "nothing to commit" errors
+                  if git diff --name-only | grep -q "dvc.lock"; then
+                    git add dvc.lock
+                    git commit -m "chore: update dvc.lock [skip ci]"
+                    git push
+                  else
+                    echo "No changes in dvc.lock, skipping commit."
+                  fi
 
     docker-delivery:
         # Industrial Practice: Gating the Deployment.
