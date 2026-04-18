@@ -6,7 +6,7 @@ joblib==1.5.3
 lightgbm==4.6.0
 loguru==0.7.3
 matplotlib==3.10.8
-mlflow==3.10.1
+mlflow==3.11.1
 mlflow_skinny==3.10.1
 mlflow_tracing==3.10.1
 numpy==2.4.4
