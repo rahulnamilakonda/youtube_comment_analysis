@@ -17,29 +17,27 @@ def model_info():
     model_name = params['base']['project']
     client = tracking.MlflowClient()
     
-    # Industrial Practice: Retry logic for cloud registry propagation.
+    # Industrial Practice: Polling for Alias propagation.
     import time
     max_retries = 5
     for i in range(max_retries):
-        versions = client.get_latest_versions(model_name, stages=["Staging"])
-        if versions:
-            return client, model_name, versions[0]
-        
-        logger.info(f"Waiting for model '{model_name}' to appear in Staging (Attempt {i+1}/{max_retries})...")
-        time.sleep(5)
+        try:
+            version = client.get_model_version_by_alias(model_name, "challenger")
+            return client, model_name, version
+        except Exception:
+            logger.info(f"Waiting for @challenger alias on '{model_name}' (Attempt {i+1}/{max_retries})...")
+            time.sleep(5)
     
-    logger.warning(f"No version of model '{model_name}' found in Staging after {max_retries} attempts.")
-    pytest.skip(f"No version of model '{model_name}' found in Staging.")
+    logger.warning(f"No version found with @challenger alias for model '{model_name}'.")
+    pytest.skip(f"No @challenger model found.")
 
 def test_model_performance_threshold(model_info):
     """
     Industrial Test: Performance Gatekeeping.
-    Checks if the model accuracy > 85% and promotes to Production if passed.
-    Uses the local metrics.json generated during the evaluate stage.
+    Checks if accuracy > 85% and promotes to @champion if passed.
     """
     client, model_name, version = model_info
     
-    # Industrial Practice: Load metrics from local artifact for robustness
     import json
     metrics_path = "reports/metrics.json"
     
@@ -55,17 +53,16 @@ def test_model_performance_threshold(model_info):
     
     THRESHOLD = 0.85
     if accuracy >= THRESHOLD:
-        # Promote to Production
-        client.transition_model_version_stage(
+        # Promote to 'champion' alias
+        client.set_registered_model_alias(
             name=model_name,
-            version=version.version,
-            stage="Production",
-            archive_existing_versions=True
+            alias="champion",
+            version=version.version
         )
-        logger.success(f"Performance PASSED ({accuracy:.4f} >= {THRESHOLD}). Promoted to PRODUCTION.")
+        logger.success(f"Performance PASSED ({accuracy:.4f} >= {THRESHOLD}). Promoted to @champion.")
     else:
-        logger.error(f"Performance FAILED ({accuracy:.4f} < {THRESHOLD}). Model remains in Staging.")
-        pytest.fail(f"Performance FAILED ({accuracy:.4f} < {THRESHOLD}). Model remains in Staging.")
+        logger.error(f"Performance FAILED ({accuracy:.4f} < {THRESHOLD}). Model remains @challenger.")
+        pytest.fail(f"Performance failed.")
 
 @pytest.mark.parametrize("sample_text", [
     "This is an amazing video, I loved the content!",  # Positive

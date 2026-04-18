@@ -18,21 +18,20 @@ def model_info():
     model_name = params['base']['project']
     client = tracking.MlflowClient()
     
-    # Industrial Practice: Retry logic for cloud registry propagation.
-    # There is often a slight delay between a stage transition and the model 
-    # being visible in the 'Staging' list on remote servers like Dagshub.
+    # Industrial Practice: Polling for Alias propagation.
     import time
     max_retries = 5
     for i in range(max_retries):
-        versions = client.get_latest_versions(model_name, stages=["Staging"])
-        if versions:
-            return client, model_name, versions[0]
-        
-        logger.info(f"Waiting for model '{model_name}' to appear in Staging (Attempt {i+1}/{max_retries})...")
-        time.sleep(5) # Wait 5 seconds before retrying
+        try:
+            # We look for the model with the '@challenger' alias
+            version = client.get_model_version_by_alias(model_name, "challenger")
+            return client, model_name, version
+        except Exception:
+            logger.info(f"Waiting for @challenger alias on '{model_name}' (Attempt {i+1}/{max_retries})...")
+            time.sleep(5)
     
-    logger.warning(f"No version of model '{model_name}' found in Staging after {max_retries} attempts.")
-    pytest.skip(f"No version of model '{model_name}' found in Staging.")
+    logger.warning(f"No version found with @challenger alias for model '{model_name}'.")
+    pytest.skip(f"No @challenger model found.")
 
 @pytest.mark.parametrize("sample_size", [1, 5, 10])
 def test_model_signature_verification(model_info, sample_size):

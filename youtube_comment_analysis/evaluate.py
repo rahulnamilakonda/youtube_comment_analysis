@@ -67,24 +67,25 @@ def evaluate(test_features_path: Path, model_dir: Path):
         with open("reports/metrics.json", "w") as f:
             json.dump(metrics, f, indent=4)
         
-        # ── Industrial Practice: Registry Management ─────────────────────────
-        # After evaluation, we transition the model to "Staging"
+        # ── Industrial Practice: Registry Management (Aliases) ───────────────
+        # In MLflow 2.9+, 'Stages' are deprecated. We now use 'Aliases'.
+        # New models are tagged as 'challenger' for validation.
         try:
             client = tracking.MlflowClient()
             model_name = params['base']['project']
             
             # Find the latest version of this model
-            latest_version = client.get_latest_versions(model_name, stages=["None"])[0].version
+            latest_version = client.get_latest_versions(model_name)[0].version
             
-            # Transition to Staging
-            client.transition_model_version_stage(
+            # Set alias to 'challenger'
+            client.set_registered_model_alias(
                 name=model_name,
-                version=latest_version,
-                stage="Staging",
+                alias="challenger",
+                version=latest_version
             )
-            logger.success(f"Model {model_name} version {latest_version} promoted to STAGING")
+            logger.success(f"Model {model_name} v{latest_version} tagged as @challenger")
         except Exception as e:
-            logger.warning(f"Could not promote model to Staging: {e}")
+            logger.warning(f"Could not set model alias: {e}")
 
         # Log Classification Report as Text
         report_str: str = classification_report(y_test, y_pred) # type: ignore

@@ -27,15 +27,16 @@ class SentimentPredictor:
             # 2. Load Model from Dagshub Registry or Local
             if use_registry:
                 model_name = "youtube_comment_analysis"
-                model_uri = f"models:/{model_name}/Production"
+                # We use the new @champion alias for production models
+                model_uri = f"models:/{model_name}@champion"
                 
-                # Industrial Practice: Log the specific version for traceability
+                # Industrial Practice: Log specific version for traceability
                 client = tracking.MlflowClient()
                 try:
-                    model_version = client.get_latest_versions(model_name, stages=["Production"])[0]
-                    logger.info(f"Loading Production Model: {model_name} (Version: {model_version.version})")
+                    version_info = client.get_model_version_by_alias(model_name, "champion")
+                    logger.info(f"Loading @champion model: {model_name} (v{version_info.version})")
                 except Exception:
-                    logger.warning("Could not find a model in 'Production' stage. Check Registry.")
+                    logger.warning("Could not find a model with @champion alias. Check Registry.")
 
                 self.model = sklearn.load_model(model_uri)
             else:
