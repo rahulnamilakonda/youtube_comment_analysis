@@ -17,13 +17,19 @@ def model_info():
     model_name = params['base']['project']
     client = tracking.MlflowClient()
     
-    # Get the latest version in Staging
-    versions = client.get_latest_versions(model_name, stages=["Staging"])
-    if not versions:
-        logger.warning(f"No version of model '{model_name}' found in Staging.")
-        pytest.skip(f"No version of model '{model_name}' found in Staging.")
+    # Industrial Practice: Retry logic for cloud registry propagation.
+    import time
+    max_retries = 5
+    for i in range(max_retries):
+        versions = client.get_latest_versions(model_name, stages=["Staging"])
+        if versions:
+            return client, model_name, versions[0]
+        
+        logger.info(f"Waiting for model '{model_name}' to appear in Staging (Attempt {i+1}/{max_retries})...")
+        time.sleep(5)
     
-    return client, model_name, versions[0] # latest version is selected.
+    logger.warning(f"No version of model '{model_name}' found in Staging after {max_retries} attempts.")
+    pytest.skip(f"No version of model '{model_name}' found in Staging.")
 
 def test_model_performance_threshold(model_info):
     """

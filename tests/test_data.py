@@ -18,13 +18,21 @@ def model_info():
     model_name = params['base']['project']
     client = tracking.MlflowClient()
     
-    # Get the latest version in Staging
-    versions = client.get_latest_versions(model_name, stages=["Staging"])
-    if not versions:
-        logger.warning(f"No version of model '{model_name}' found in Staging.")
-        pytest.skip(f"No version of model '{model_name}' found in Staging.")
+    # Industrial Practice: Retry logic for cloud registry propagation.
+    # There is often a slight delay between a stage transition and the model 
+    # being visible in the 'Staging' list on remote servers like Dagshub.
+    import time
+    max_retries = 5
+    for i in range(max_retries):
+        versions = client.get_latest_versions(model_name, stages=["Staging"])
+        if versions:
+            return client, model_name, versions[0]
+        
+        logger.info(f"Waiting for model '{model_name}' to appear in Staging (Attempt {i+1}/{max_retries})...")
+        time.sleep(5) # Wait 5 seconds before retrying
     
-    return client, model_name, versions[0]
+    logger.warning(f"No version of model '{model_name}' found in Staging after {max_retries} attempts.")
+    pytest.skip(f"No version of model '{model_name}' found in Staging.")
 
 @pytest.mark.parametrize("sample_size", [1, 5, 10])
 def test_model_signature_verification(model_info, sample_size):
