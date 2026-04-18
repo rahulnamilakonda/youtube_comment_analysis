@@ -3,6 +3,7 @@
 /models/
 /reports/metrics.json
 /reports/figures/
+/reports/model/
 /mlartifacts/
 mlflow.db
 .dvc/cache/
