@@ -41,8 +41,12 @@ jobs:
 
             - name: Setup DVC
               run: |
-                  pip install dvc[s3] # Or relevant remote
-                  dvc remote add -d origin https://dagshub.com/${{ env.DAGSHUB_USERNAME }}/youtube_comment_analysis.dvc --force
+                  pip install dvc
+                  # 1. Force add the remote to handle existing configs
+                  dvc remote add origin https://dagshub.com/${{ env.DAGSHUB_USERNAME }}/youtube_comment_analysis.dvc --force
+                  # 2. Explicitly set origin as the default remote
+                  dvc remote default origin
+                  # 3. Configure authentication
                   dvc remote modify origin --local auth basic
                   dvc remote modify origin --local user ${{ env.DAGSHUB_USERNAME }}
                   dvc remote modify origin --local password ${{ env.DAGSHUB_TOKEN }}
@@ -108,15 +112,17 @@ jobs:
                   fetch-depth: 0
 
             - name: Setup DVC and Pull Artifacts
-              # Industrial Practice: We must pull the model artifacts into this 
-              # fresh runner so they can be copied into the Docker image.
+              # Industrial Practice: We run a simple 'dvc pull'. 
+              # DVC will automatically read dvc.lock and pull only the necessary 
+              # model and data files into this runner.
               run: |
                   pip install dvc
-                  dvc remote add -d origin https://dagshub.com/${{ env.DAGSHUB_USERNAME }}/youtube_comment_analysis.dvc --force
+                  dvc remote add origin https://dagshub.com/${{ env.DAGSHUB_USERNAME }}/youtube_comment_analysis.dvc --force
+                  dvc remote default origin
                   dvc remote modify origin --local auth basic
                   dvc remote modify origin --local user ${{ env.DAGSHUB_USERNAME }}
                   dvc remote modify origin --local password ${{ env.DAGSHUB_TOKEN }}
-                  dvc pull models/
+                  dvc pull
 
             - name: Login to Docker Hub
               uses: docker/login-action@v2
