@@ -51,16 +51,15 @@ jobs:
               run: dvc pull
 
             - name: Execute ML Pipeline & Technical Tests
-              # Industrial Practice: dvc repro <stage> runs all previous stages in the graph:
+              # Industrial Practice: Adding the '-f' (force) flag.
+              # This overrides DVC's lazy-loading and forces every stage to run from scratch:
               # data_collection -> preprocessing -> features -> train -> evaluate -> validate_schema
-              # This ensures we stop immediately if the technical blueprint (schema) is wrong.
-              run: dvc repro validate_schema
+              run: dvc repro -f validate_schema
 
             - name: Model Performance Gate & Promotion
-              # Industrial Practice: DVC detects that previous stages are already cached/run.
-              # This only executes the performance threshold logic and promotes to PRODUCTION.
+              # We use -f here as well to ensure the promotion logic is explicitly executed
               if: success()
-              run: dvc repro validate_model
+              run: dvc repro -f validate_model
 
             - name: API Integration Gate
               # Finally, verify that the API endpoints are still compatible
