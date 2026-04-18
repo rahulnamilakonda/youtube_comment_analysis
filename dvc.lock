@@ -164,12 +164,12 @@ stages:
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 638e3633d401da64a0b99af045aa2fc6
-      size: 3575228
+      md5: 521b66595e0590aafa414ddd6a515831
+      size: 3557276
     - path: models/tfidf.pkl
       hash: md5
-      md5: c6a37f85568f0a9c11cff3ac910c0fbe
-      size: 90559
+      md5: e4ad0e2c91544ca97a9329fad4ac315a
+      size: 90571
   evaluate:
     cmd: python youtube_comment_analysis/evaluate.py
     deps:
@@ -179,12 +179,12 @@ stages:
       size: 730215
     - path: models/model.pkl
       hash: md5
-      md5: 638e3633d401da64a0b99af045aa2fc6
-      size: 3575228
+      md5: 521b66595e0590aafa414ddd6a515831
+      size: 3557276
     - path: models/tfidf.pkl
       hash: md5
-      md5: c6a37f85568f0a9c11cff3ac910c0fbe
-      size: 90559
+      md5: e4ad0e2c91544ca97a9329fad4ac315a
+      size: 90571
     - path: youtube_comment_analysis/evaluate.py
       hash: md5
       md5: 29f7f71f4a9325d3fb81097a951388c3
@@ -192,23 +192,23 @@ stages:
     outs:
     - path: reports/figures/confusion_matrix.png
       hash: md5
-      md5: e595a0af23aeebe47f7f6661a106f171
-      size: 21347
+      md5: 8ded8247d4aaffff300e257ff00d81e0
+      size: 21776
     - path: reports/metrics.json
       hash: md5
-      md5: cf43d1a17ee17d083063c7a17d41fe94
-      size: 563
+      md5: 9a4e0a830da1a8465ddd2337822abb21
+      size: 566
   validate_schema:
     cmd: pytest tests/test_data.py -v
     deps:
     - path: models/model.pkl
       hash: md5
-      md5: 638e3633d401da64a0b99af045aa2fc6
-      size: 3575228
+      md5: 9276d64b28d75a0948f482dfdf9bdf0c
+      size: 3557276
     - path: models/tfidf.pkl
       hash: md5
-      md5: c6a37f85568f0a9c11cff3ac910c0fbe
-      size: 90559
+      md5: d8e9b29dcef6777601190d8aaff1cd32
+      size: 90571
     - path: tests/test_data.py
       hash: md5
       md5: 6a18bdd5fc59e8e8a4b4d8d06345c239
@@ -221,12 +221,12 @@ stages:
     deps:
     - path: models/model.pkl
       hash: md5
-      md5: 638e3633d401da64a0b99af045aa2fc6
-      size: 3575228
+      md5: 521b66595e0590aafa414ddd6a515831
+      size: 3557276
     - path: reports/metrics.json
       hash: md5
-      md5: cf43d1a17ee17d083063c7a17d41fe94
-      size: 563
+      md5: 9a4e0a830da1a8465ddd2337822abb21
+      size: 566
     - path: tests/test_model.py
       hash: md5
       md5: d6a3296097e6ea533f27084bccce94bf
