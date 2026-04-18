@@ -1,20 +1,20 @@
-backend==0.2.4.1
 dagshub==0.7.0
 fastapi==0.136.0
 google_api_python_client==2.194.0
 joblib==1.5.3
 lightgbm==4.6.0
 loguru==0.7.3
-matplotlib==3.10.8
-mlflow==3.11.1
-mlflow_skinny==3.11.1
-mlflow_tracing==3.11.1
+# Using mlflow-skinny to save significant space
+mlflow-skinny==3.11.1
 numpy==2.4.4
 pandas==2.3.3
 pydantic==2.13.2
 pydantic_settings==2.13.1
 python-dotenv==1.2.2
 scikit_learn==1.8.0
-scipy==1.17.1
 uvicorn==0.44.0
 wordcloud==1.9.6
+gunicorn
+# Pillow is required for wordcloud.to_image()
+Pillow
+# scipy and matplotlib removed to save ~150MB

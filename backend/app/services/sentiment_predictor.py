@@ -59,8 +59,9 @@ class SentimentPredictor:
         # Text features: TF-IDF
         text_tfidf = self.tfidf.transform([text])
         
-        from scipy.sparse import hstack
-        X_combined = hstack([text_tfidf, scaled_numeric]).toarray()
+        # Industrial Practice: Avoid scipy.sparse.hstack to save 100MB+ image space.
+        # We convert the sparse TF-IDF result to a dense array and use numpy.
+        X_combined = np.hstack([text_tfidf.toarray(), scaled_numeric])
         
         # Convert to DataFrame with string column names to match model signature
         X_df = pd.DataFrame(X_combined)

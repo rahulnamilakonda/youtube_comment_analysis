@@ -1,11 +1,14 @@
 import base64
 from io import BytesIO
 from wordcloud import WordCloud
-import matplotlib.pyplot as plt
 from loguru import logger
 
 def generate_wordcloud_base64(text_list: list):
-    """Generates a word cloud from a list of strings and returns it as a base64 string."""
+    """
+    Industrial Practice: Optimized image generation.
+    Generates a word cloud using PIL directly, removing the huge matplotlib 
+    dependency (~30MB) from the production image.
+    """
     try:
         if not text_list:
             return None
@@ -16,14 +19,10 @@ def generate_wordcloud_base64(text_list: list):
             
         wc = WordCloud(width=800, height=400, background_color='white', max_words=100).generate(combined_text)
         
-        # Save to buffer
+        # Convert wordcloud to PIL image and save to buffer
+        img = wc.to_image()
         img_buffer = BytesIO()
-        plt.figure(figsize=(10, 5))
-        plt.imshow(wc, interpolation='bilinear')
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-        plt.savefig(img_buffer, format='png')
-        plt.close()
+        img.save(img_buffer, format='PNG')
         
         img_buffer.seek(0)
         base64_img = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
