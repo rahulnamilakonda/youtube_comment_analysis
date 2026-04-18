@@ -10,7 +10,7 @@ mlflow==3.11.1
 mlflow_skinny==3.11.1
 mlflow_tracing==3.11.1
 numpy==2.4.4
-pandas==3.0.2
+pandas==2.3.3
 pydantic==2.13.2
 pydantic_settings==2.13.1
 python-dotenv==1.2.2
