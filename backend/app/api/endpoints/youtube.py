@@ -14,6 +14,7 @@ async def analyze_video(request: VideoAnalysisRequest):
     Full video-level analysis: fetch comments, predict sentiment, 
     compute engagement, and generate a word cloud.
     """
+    logger.info(f"Starting video analysis for video_id: {request.video_id}")
     try:
         # 1. Fetch comments from YouTube Data API
         comments_data = youtube_service.fetch_comments_with_metadata(
@@ -21,7 +22,10 @@ async def analyze_video(request: VideoAnalysisRequest):
         )
         
         if not comments_data:
+            logger.warning(f"No comments found for video_id: {request.video_id}")
             raise HTTPException(status_code=404, detail="No comments found for this video")
+
+        logger.info(f"Fetched {len(comments_data)} comments for video_id: {request.video_id}")
 
         # 2. Analyze Sentiment for all fetched comments
         total_likes = 0
@@ -30,6 +34,7 @@ async def analyze_video(request: VideoAnalysisRequest):
         labels = []
         enriched_comments = []
         
+        logger.info(f"Starting sentiment analysis for {len(comments_data)} comments")
         for c in comments_data:
             sentiment_data = sentiment_service.analyze_text(c["text"])
             if sentiment_data:
@@ -39,6 +44,8 @@ async def analyze_video(request: VideoAnalysisRequest):
                 confidences.append(sentiment_data["confidence"])
                 total_likes += c["likes"]
                 total_replies += c["reply_count"]
+        
+        logger.info(f"Sentiment analysis complete. Successfully enriched {len(enriched_comments)} comments")
 
         # 3. Calculate Summary Stats
         total = len(enriched_comments)
@@ -72,8 +79,11 @@ async def analyze_video(request: VideoAnalysisRequest):
         trend = [c["sentiment"] for c in top_comments]
 
         # 6. Generate Word Cloud
+        logger.info(f"Generating wordcloud for video_id: {request.video_id}")
         wordcloud = generate_wordcloud_base64([c["text"] for c in enriched_comments])
+        logger.info(f"Wordcloud generated for video_id: {request.video_id}")
 
+        logger.info(f"Successfully completed video analysis for video_id: {request.video_id}")
         return {
             "video_id": request.video_id,
             "summary": summary,

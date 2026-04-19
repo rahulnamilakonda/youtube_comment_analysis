@@ -32,6 +32,7 @@ class SentimentPredictor:
                 try:
                     version_info = client.get_model_version_by_alias(model_name, "champion")
                     logger.info(f"Loading @champion model: {model_name} (v{version_info.version})")
+                    logger.info("Predictor successfully fetched from model registry")
                 except Exception:
                     logger.warning("Could not find a model with @champion alias. Check Registry.")
 

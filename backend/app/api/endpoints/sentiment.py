@@ -11,11 +11,13 @@ async def predict_batch(request: BatchSentimentRequest):
     Predict sentiment for a batch of comments.
     Order is preserved as per input array in the response.
     """
+    logger.info(f"Received batch prediction request with {len(request.comments)} comments")
     try:
         results = sentiment_service.analyze_batch(request.comments)
         if not results:
             logger.warning("Batch processing returned no results.")
-            
+        
+        logger.info(f"Batch prediction complete. Successfully processed {len(results)} comments")
         return {"results": results}
     except Exception as e:
         logger.error(f"Batch prediction error: {e}")

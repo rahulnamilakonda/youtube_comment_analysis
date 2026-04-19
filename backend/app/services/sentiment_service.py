@@ -42,8 +42,9 @@ class SentimentService:
         """
         Process a batch of comments. Matches the order of input.
         """
+        logger.info(f"Service: Processing batch of {len(comments)} comments")
         results = []
-        for item in comments:
+        for i, item in enumerate(comments):
             prediction = self.analyze_text(item.comment_text)
             
             if prediction:
@@ -52,6 +53,10 @@ class SentimentService:
                     "sentiment": prediction["sentiment"],
                     "confidence": prediction["confidence"]
                 })
+            
+            if (i + 1) % 50 == 0:
+                logger.debug(f"Service: Processed {i+1}/{len(comments)} comments...")
+                
         return results
 
 sentiment_service = SentimentService()
