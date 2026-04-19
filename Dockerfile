@@ -42,7 +42,8 @@ EXPOSE 8000
 
 # Industrial Production Configuration:
 # gunicorn: The process manager that keeps workers alive and robust.
-# -w 4: Number of worker processes. Formula: (2 x $num_cores) + 1. 4 is ideal for 2-core EC2 instances.
+# -w 1: Reduced to 1 worker for Render Hobby Plan (512MB RAM limit).
+# --worker-tmp-dir /dev/shm: Avoids blocking on filesystem for heartbeats.
 # -k uvicorn.workers.UvicornWorker: Tells Gunicorn to use Uvicorn's high-speed ASGI engine for FastAPI.
-# --bind 0.0.0.0:8000: Ensures the container listens to all external traffic (required for EC2/Docker).
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:8000"]
+# --bind 0.0.0.0:8000: Ensures the container listens to all external traffic.
+CMD ["gunicorn", "-w", "1", "--worker-tmp-dir", "/dev/shm", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:8000"]
