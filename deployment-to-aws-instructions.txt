@@ -1,0 +1,12 @@
+As your mentor, I've reviewed your plan. It is a solid Blue/Green-ready architecture. You are moving from "building the engine" to "building the factory."
+
+In an industrial MLOps setup, we treat the server as Immutable Infrastructure. This means we don't manually fix servers; we use scripts to ensure every instance in your Auto Scaling Group (ASG) is an identical twin.
+
+1. What you missed (The Industrial "Hidden" Requirements)
+Before we write the scripts, we need to address three critical pieces of the puzzle:
+
+IAM Roles (The Keys):
+EC2 Instance Profile: Your EC2s need a role to pull the zip from S3 and communicate with the CodeDeploy service.
+CodeDeploy Service Role: CodeDeploy needs a role to "talk" to your Auto Scaling Group and EC2s.
+User Data (The Birth Script): In a professional Launch Template, we install the CodeDeploy Agent and Docker via User Data. This ensures that when AWS scales out (adds a new server), the server is "born" ready to receive code.
+Target Groups: Your ASG needs to be linked to a Load Balancer (ALB) via a Target Group to monitor the health of your FastAPI app on port 8000.
