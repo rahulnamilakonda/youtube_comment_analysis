@@ -151,24 +151,28 @@ jobs:
     needs: docker-delivery
     if: success()
     runs-on: ubuntu-latest
-    env:
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-      MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-      MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
-      YOUTUBE_DATA_API: ${{ secrets.YOUTUBE_DATA_API}}
-      DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-      DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
     steps:
       - name: Trigger Render Deploy
         run: |
-          curl -s -X POST \
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
             "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{
-              "imageUrl": "${{ secrets.DOCKERHUB_USERNAME }}/youtube_comment_analysis:latest"
-            }'
-          echo "Deploy triggered on Render"
+              "imageUrl": "docker.io/${{ secrets.DOCKERHUB_USERNAME }}/youtube_comment_analysis:latest"
+            }')
+
+          echo "Response: $RESPONSE"
+
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
+          echo "HTTP Status: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ]; then
+            echo "Deploy failed with status $HTTP_STATUS"
+            exit 1
+          fi
+
+          echo "Deploy triggered successfully on Render"
   # continuous-deployment:
   #   needs: docker-delivery
   #   if: success()
